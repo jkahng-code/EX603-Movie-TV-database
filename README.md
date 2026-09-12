@@ -4,7 +4,7 @@
 A relational database system designed and implemented in PostgreSQL 18 to model, store, and analyze user engagement, movie catalog metadata, and viewer ratings.
 
 ## Author
-* **Course:** EX 603 - Relational Databases
+* **Course:** EX603 - Data and Algorithms for Scalable Systems
 * **Theme:** Movie / TV
 
 ## System Overview & Domain
@@ -21,6 +21,8 @@ The platform answers critical business questions such as:
 * **Event (`ratings`):** The high-volume fact table capturing each individual rating score, user reference, and timestamp.
 * **Catalog (`genres`):** Descriptive classification dimensions for media content.
 * **Junction (`movie_genres`):** Resolves the many-to-many relationship linking movies to multiple genres.
+
+![Entity Relationship Diagram](schema/erd.png)
 
 ## Project Structure
 ```text
