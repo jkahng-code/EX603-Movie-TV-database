@@ -1,0 +1,39 @@
+erDiagram
+    users ||--o{ ratings : "submits"
+    movies ||--o{ ratings : "receives"
+    movies ||--o{ movie_genres : "categorized by"
+    genres ||--o{ movie_genres : "classifies"
+
+    users {
+        int user_id PK
+        varchar display_name
+        varchar email UK
+        date join_date
+        boolean is_active
+    }
+
+    movies {
+        int movie_id PK
+        varchar title
+        int release_year
+        boolean is_active
+        int runtime_minutes
+    }
+
+    ratings {
+        int rating_id PK
+        int user_id FK
+        int movie_id FK
+        decimal score
+        timestamp rated_at
+    }
+
+    genres {
+        int genre_id PK
+        varchar genre_name
+    }
+
+    movie_genres {
+        int movie_id PK, FK
+        int genre_id PK, FK
+    }
