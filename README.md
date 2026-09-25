@@ -22,6 +22,11 @@ The platform answers critical business questions such as:
 * **Catalog (`genres`):** Descriptive classification dimensions for media content.
 * **Junction (`movie_genres`):** Resolves the many-to-many relationship linking movies to multiple genres.
 
+### Key Design Decisions
+* **I used soft deletes instead of hard deletes for users and movies.** Both `users` and `movies` have an `is_active` column instead of actually deleting the row when someone closes their account or a movie gets pulled. That way if a user leaves or a movie gets delisted, all the ratings tied to them stick around and don't just disappear.
+* **The ratings table has different delete behavior depending on which side you're deleting.** If a user gets permanently deleted, their ratings get deleted with them, since a rating can't really exist without the person who made it. But if someone tries to permanently delete a movie, the database blocks it instead, so ratings don't get wiped out or left pointing at nothing by accident.
+* **Ratings has its own id instead of using user_id and movie_id together as the key.** I gave `ratings` its own `rating_id` instead of making the primary key a combo of `user_id` and `movie_id`. I still added a `UNIQUE` constraint on `(user_id, movie_id)` so a user can't rate the same movie twice, but this way if someone changes their rating, it's just updating the row they already have instead of deleting and remaking it.
+
 ![Entity Relationship Diagram](schema/erd.png)
 
 ## Project Structure
