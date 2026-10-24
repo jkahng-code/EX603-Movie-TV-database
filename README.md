@@ -37,3 +37,21 @@ ex603-movie-tv-database/
 ├── queries/         # SQL query scripts organized by unit (unit3, unit4, unit5, unit6)
 ├── analysis/        # Markdown reflections and analytical writeups
 └── screenshots/     # Execution evidence and verification output
+```
+
+## Query Catalogue
+
+### Unit 4: Aggregation
+
+Failure = a rating withdrawn as spam. Producer = movie. Region = the movie's origin country.
+
+| Query | File | Business question |
+|---|---|---|
+| 4.1-1 | `queries/unit4/q4_1.sql` | What does the whole platform look like in one row (count, total, average, min, and max score, plus distinct users)? |
+| 4.1-2 | `queries/unit4/q4_1.sql` | Which movies get the most ratings, and how do their average scores compare? |
+| 4.1-3 | `queries/unit4/q4_1.sql` | Which movies have at least 10 ratings, making their average scores less sensitive to individual ratings? |
+| 4.1-4 | `queries/unit4/q4_1.sql` | How do rating counts and scores vary by the movie's region and the viewer's region together? |
+| 4.2A | `queries/unit4/q4_2.sql` | For each movie, how many ratings did it get, how many were spam failures, and what percentage were spam? |
+| 4.2B | `queries/unit4/q4_2.sql` | What are the spam totals and rates for each region and for the whole platform? |
+| 4.2C | `queries/unit4/q4_2.sql` | Among movies with at least 10 ratings, what is the average spam rate to use as a baseline? |
+
