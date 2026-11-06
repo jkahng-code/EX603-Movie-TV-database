@@ -22,7 +22,44 @@ information from genre relationships.
 
 ## Task 5.2: Find records that joins may exclude
 
-(to be filled in)
+**Which producers were excluded by the inner join?**
+Movies 14 and 15. The LEFT JOIN returned all 15 movies, while the INNER JOIN
+returned only 13, so 2 movies were excluded. Both have no matching ratings.
+
+**What does it mean when a producer has no events?**
+It means the movie exists in the `movies` table but has never received a
+rating. Possible explanations include the movie being recently added,
+marked unavailable, difficult for users to find, or simply not attracting
+interest. The movies table has `added_on`, `release_year`, and
+`is_available` columns that could help narrow this down, but we can't
+assume a movie is new or hidden without checking.
+
+**How could a report based only on an inner join give leadership an incomplete picture?**
+An INNER JOIN silently removes movies without ratings. Leadership would see
+13 movies instead of the full catalog of 15, which makes the platform look
+more active than it is, because the movies with zero engagement never appear.
+There is no error or warning, so nobody would know anything was missing.
+My Unit 4 per-movie query had exactly this gap.
+
+**Why might leadership want to identify producers who have never been active?**
+To understand why certain movies receive no engagement and to evaluate
+content visibility, availability, and user interest. It also separates two
+very different problems: movies that are active but performing poorly (like
+movies 2 and 3, with high spam rates) and movies with no activity at all.
+
+**What action could leadership take?**
+Investigate movies 14 and 15 to find out why they have no ratings, starting
+with whether they are available and visible to users. If they are available
+but hard to discover, leadership could improve their placement or promotion,
+then monitor whether ratings start coming in.
+
+**What the data shows vs. what needs further investigation**
+The data confirms that movies 14 and 15 have zero ratings. The LEFT JOIN,
+FULL OUTER JOIN, NOT EXISTS, and EXCEPT queries all agree. The foreign key
+also confirms that every existing rating points to a real movie, so there
+are no orphaned ratings. What the data doesn't show is *why* these movies
+have no ratings. Their availability, release timing, visibility, and user
+interest would need further investigation.
 
 ## Task 5.3: Join performance and execution plans
 

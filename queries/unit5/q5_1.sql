@@ -31,15 +31,15 @@ JOIN movies m ON m.movie_id = r.movie_id
 ORDER BY r.rated_at
 LIMIT 20;
 
--- 5.1-2 Junction traversal: which genres each movie is tagged with.
---       Requirement: producer → junction → catalog join.
---       Question: Do the movies flagged in Assignment 4 (2 and 3) share
---       a genre with each other or with other movies?
---       Finding: The query returned 25 rows across 12 movies. Movies
---       13, 14, and 15 do not appear because they have no genre tags
---       in the junction table. Movies 2 and 3 share Comedy, while Drama
---       appears on 9 of the 12 movies, making it too common to explain
---       the higher spam rates.
+-- 5.1-2a Junction traversal: which genres each movie is tagged with.
+--        Requirement: producer → junction → catalog join.
+--        Question: Do the movies flagged in Assignment 4 (2 and 3) share
+--        a genre with each other or with other movies?
+--        Finding: The query returned 25 rows across 12 movies. Movies
+--        13, 14, and 15 do not appear because they have no genre tags
+--        in the junction table. Movies 2 and 3 share Comedy, while Drama
+--        appears on 9 of the 12 movies, making it too common to explain
+--        the higher spam rates.
 SELECT
     m.movie_id,
     m.title,
