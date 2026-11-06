@@ -63,8 +63,79 @@ interest would need further investigation.
 
 ## Task 5.3: Join performance and execution plans
 
-(to be filled in)
+**When could a Cartesian product be useful on this platform?**
+A Cartesian product could be useful for building a region-by-month reporting
+grid. Combining every region with every month creates a row for each
+possible combination, even when a region had no ratings in a particular
+month, which makes gaps in activity easy to spot instead of leaving those
+combinations out. I would not use a CROSS JOIN to find actual movie genres,
+though, because the junction table already stores those relationships: the
+CROSS JOIN produced all 75 possible movie-genre pairs, while `movie_genres`
+holds only the 25 that actually exist.
+
+**Which join algorithms did PostgreSQL choose?**
+Two: a **Hash Join** to combine `ratings` with `users`, and a **Nested Loop**
+to combine that result with `movies`.
+
+**What information in the plan helps explain those choices?**
+For the Hash Join, the plan shows both tables were read with a Seq Scan
+(200 ratings and 30 users) and a hash was built from the smaller `users`
+table. Since every rating needed its user, building one small lookup table
+was cheaper than 200 separate lookups. For the Nested Loop, the plan shows
+an `Index Scan using movies_pkey` underneath a `Memoize` step with 13
+misses and 187 hits. Only 13 different movies have ratings, so PostgreSQL
+did just 13 real index lookups and reused the cached result for the rest.
+The plan also shows the planner estimated 100 users but found 30, so its
+statistics were slightly out of date, though at this size it made no
+difference.
+
+**Why is it useful to understand the selected join algorithms?**
+It helps developers and database administrators see how PostgreSQL
+retrieves and combines data. As the platform grows, this helps them spot
+expensive operations, judge whether an index would improve performance,
+and notice when a query plan changes. It also explains why a query that
+runs in 0.3 ms on a small dataset might become much slower as more ratings,
+users, and movies are added.
+
+**What changes might make another join algorithm more appropriate?**
+- **Many more ratings:** the Seq Scan and Sort on `ratings` would grow with
+  the table. An index on `rated_at` could let PostgreSQL read the earliest
+  ratings directly instead of scanning and sorting everything.
+- **Many more users:** the hash built from `users` uses 10 kB of memory
+  now. If it outgrew available memory, it would have to be split into
+  batches on disk, and other strategies might become cheaper.
+- **Many more distinct movies being rated:** Memoize works well because
+  only 13 movies repeat. With thousands of different movies, the cache
+  would help less, and a Hash Join on movies might become cheaper than
+  thousands of individual index lookups.
+- **An index on `ratings.user_id`:** this could make a Nested Loop with
+  index lookups competitive for the users join, especially when only a
+  few users' ratings are needed.
+- **Both sides large and already sorted:** if both tables were large and
+  sorted or indexed on the join column, a Merge Join could become the best
+  choice.
 
 ## Reflection
 
-(to be filled in)
+The most surprising thing I learned from the execution plan is that having
+an index does not mean PostgreSQL will use it. Both `users` and `movies`
+have primary-key indexes, but PostgreSQL only used the index for `movies`.
+For `users`, every one of the 200 ratings needed a match, so building one
+small hash table was cheaper than doing 200 separate index lookups. That
+showed me that the number of records being matched matters as much as
+whether an index exists.
+
+I also thought Memoize was interesting. Because only 13 movies have
+ratings, PostgreSQL cached each movie lookup and reused it 187 times. If
+the platform grew to thousands of different movies being rated, that cache
+would help much less, and a Hash Join on `movies` might become the cheaper
+option.
+
+The biggest change would come from the ratings table growing. Right now
+PostgreSQL reads all 200 ratings and sorts them to find the earliest 20,
+which takes a fraction of a millisecond. With millions of ratings, that
+scan and sort would become the slowest part of the query. Adding an index
+on `rated_at` could let PostgreSQL read the earliest ratings directly
+instead. Overall, the planner chooses based on the data it has at the
+moment, so as table sizes, indexes, and matching records change, the best
+plan can change too.
