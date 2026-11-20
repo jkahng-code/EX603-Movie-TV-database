@@ -66,8 +66,57 @@ ratings failed.
 
 ## Task 6.3: Build the reporting patterns
 
-(to be filled in)
+**What feature would top-N power, and why three?**
+A "Top 3 Reviews" section on each movie's page. Three reviews give viewers
+more than one opinion, so they get a better sense of how people feel about
+the movie. One review might not represent the overall audience, while ten
+would take up too much space and make the page harder to browse. Three is a
+good balance between showing a range of opinions and keeping the page easy
+to use. Using ROW_NUMBER guarantees the section always shows exactly three,
+even when a popular movie has many ratings tied at 5.0.
+
+**What would a large month-over-month change mean, and what should someone do?**
+A large change could signal a real problem with rating activity or spam,
+but the first step is to check the actual counts behind it. Because each
+month has only 11-21 ratings and 0-2 spam failures, a single rating can
+swing the numbers a lot, so a change is more convincing when it lasts more
+than one month or also shows up at the quarterly level.
+
+For March's 47.6% drop in ratings, I would check whether the platform had
+fewer active users, a technical issue, or missing rating data. This drop
+lasted two months (March and April both had 11 ratings), so it is more
+likely to be real. If it is, the team could look at user engagement or
+problems with submitting ratings.
+
+For March's 18.2% spam rate, I would check the actual number of spam
+failures first: it came from only 2 of 11 ratings, and the rate fell to 0%
+in April, so it is more likely noise. If spam were genuinely rising, the
+team should investigate the accounts involved and strengthen spam
+detection. At the quarterly level, the spam rate fell from 7.5% in Q1 to
+4.2% in Q4, which suggests spam was improving overall even though the
+monthly numbers were inconsistent.
 
 ## Reflection
 
-(to be filled in)
+## Reflection
+
+A reporting question that is easy with a window function but awkward with
+GROUP BY alone is: "What are each movie's top three ratings?" This connects
+directly to the Top 3 Reviews feature I designed in Task 6.3A, where the goal
+is to find the three highest ratings for each movie while keeping the
+individual rating records visible.
+
+With only GROUP BY, I could calculate each movie's highest score using
+MAX(score), but that collapses all of a movie's ratings into one row. It
+only gives the top score, not the second or third, and it doesn't even show
+which rating the score came from. Getting the three highest individual
+ratings would require extra queries, joins back to the ratings table, or a
+subquery that counts how many ratings rank above each one. Ties make it
+harder still: for movie 5, MAX returns 5.0, but seven ratings share that
+score, and GROUP BY has no way to choose three of them.
+
+ROW_NUMBER() made this much simpler. It kept every rating's details,
+numbered them within each movie, and let a CTE keep only the top three. This
+mattered in my results because movies 5, 7, 8, and 10 had more than three
+5.0 ratings, and I could see exactly which three were selected, using the
+earliest rating as the tiebreaker.
