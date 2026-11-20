@@ -139,3 +139,163 @@ Throughout the project, a **failure** is a rating withdrawn as spam
 | 6.2C | [q6_2.sql](queries/unit6/q6_2.sql) | Which movies went 60+ days without a rating before ratings resumed? |
 | 6.3A | [q6_3.sql](queries/unit6/q6_3.sql) | What are each movie's top three ratings? |
 | 6.3B | [q6_3.sql](queries/unit6/q6_3.sql) | Is the platform getting better or worse each month, in rating volume and spam rate? |
+
+## Technical Highlights
+
+**1. NULL-aware filtering: finding the dashboard's bug (Unit 3)**
+The dashboard counted "ratings not withdrawn as spam" with
+`WHERE withdrawn_reason <> 'Spam detected'`. Because `withdrawn_reason` is
+NULL for every rating that was never withdrawn, and comparing NULL with
+`<>` gives UNKNOWN rather than TRUE, that filter silently dropped 166 of
+200 ratings and returned 22 instead of 188. Adding
+`OR withdrawn_reason IS NULL` fixed it. This one missing condition
+explains how the dashboard reached its false "50% spam" figure.
+
+**2. Conditional aggregation: several answers in one pass (Unit 4)**
+```sql
+SELECT movie_id,
+       COUNT(*) AS total_ratings,
+       SUM(CASE WHEN withdrawn_reason = 'Spam detected' THEN 1 ELSE 0 END) AS spam_failures
+FROM ratings
+GROUP BY movie_id;
+```
+Putting the condition inside the aggregate, instead of in WHERE, counts
+each movie's total ratings and spam failures side by side in a single scan
+of the table. That made it possible to calculate every movie's spam rate
+directly, which revealed movies 2 and 3 as outliers at 18.8% and 15.4%.
+
+**3. Outer joins and anti-joins: finding what reports leave out (Unit 5)**
+An INNER JOIN between movies and ratings returned 13 movies, quietly
+dropping the two that had never been rated. A LEFT JOIN kept all 15, and
+counting `COUNT(r.rating_id)` instead of `COUNT(*)` correctly gave those
+two movies 0 ratings instead of 1. NOT EXISTS, EXCEPT, and a FULL OUTER
+JOIN all confirmed the same result: movies 14 and 15 have no activity.
+
+**4. CTEs: breaking problems into steps (Units 3–6)**
+Common Table Expressions (the `WITH` clause) let me compute an
+intermediate result, then filter or aggregate it in a second step. I used
+them for a per-movie baseline spam rate (an average of averages, which a
+single GROUP BY can't do), and for filtering on window function results,
+which WHERE can't see in the same query.
+
+**5. Window functions: trends without losing detail (Unit 6)**
+Window functions calculate across related rows while keeping every row.
+`PARTITION BY` compared each rating with its own movie's average. A running
+total that resets each quarter tracked progress toward a 50-rating target.
+`LAG` compared each month with the one before, with a check to catch
+missing months. Grouping those monthly results by quarter showed the spam
+rate falling from 7.5% to 4.2% over the year.
+
+## Findings and Recommendations
+
+**1. The real spam rate is 6%, not 50%, and it is falling.**
+Only 12 of 200 ratings were withdrawn as spam. The dashboard's figure came
+from a filter that silently excluded every rating without a withdrawal
+reason. Across 2023, the quarterly spam rate fell from 7.5% to 6.3%, 5.9%,
+and 4.2%, while rating activity stayed steady at about 50 per quarter.
+Because the trend rests on only 12 spam ratings, it is encouraging rather
+than conclusive.
+*Recommendation:* keep monitoring spam each quarter and investigate right
+away if the rate rises above 6%. Check any dashboard number against the
+raw data before it drives a decision like freezing payouts.
+([Unit 3 memo](analysis/unit3-finding.md),
+[Unit 6 memo](analysis/unit6-finding.md))
+
+**2. Spam is concentrated in two movies, and nothing about the movies explains it.**
+Movies 2 and 3 had spam rates of 18.8% and 15.4%, about three times the
+platform rate, and they were the only movies with more than one spam
+rating. Other movies with the same genre or from the same country had
+little or no spam, which points to the rating activity around these two
+movies rather than their content.
+*Recommendation:* review new ratings on movies 2 and 3 and investigate the
+accounts behind their spam, rather than removing the movies.
+([Unit 4 memo](analysis/unit4-finding.md),
+[Unit 5 memo](analysis/unit5-finding.md))
+
+**3. Two movies have never been rated, and standard reports hide them.**
+Movies 14 and 15 are in the catalog but have zero ratings. Any report built
+on an INNER JOIN leaves them out completely, so they never appeared in the
+earlier analysis. This is a visibility problem, not a spam problem, and
+needs a different response.
+*Recommendation:* confirm both movies are available and easy to find, then
+promote them. Start tracking views as well as ratings, so the team can tell
+whether a movie is being ignored, hard to find, or watched without being
+rated. ([Unit 5 memo](analysis/unit5-finding.md))
+
+## Limitations and Future Improvements
+
+**The main limitation is sample size.** The dataset holds 200 ratings across
+15 movies over one year, and only 12 of those ratings were withdrawn as
+spam. That is enough to show the dashboard was wrong, but not enough to be
+confident about smaller patterns. A single spam rating moves a month's spam
+rate by 5–9 percentage points, which is why I compared quarters rather than
+months. The same is true of the falling quarterly trend (7.5% to 4.2%) and
+of movies 2 and 3 standing out: each rests on just two or three ratings.
+
+**What would help:** more data, specifically several years of ratings or a
+larger catalog, so trends could be tested against more than a handful of
+spam events. With more volume, I could also break spam down by account to
+see whether a few users are behind most of it, and use statistical tests
+to check whether a change is larger than normal random variation.
+
+Two smaller limitations are also worth noting:
+- **Only ratings are recorded, not views.** A movie with no ratings might be
+  unwatched, hard to find, or watched without being rated. The data can't
+  tell these apart.
+- **Withdrawn ratings carry a placeholder score of 0.5.** Any average that
+  includes them is pulled down. I filtered them out where it mattered, but
+  storing withdrawn scores as NULL instead of 0.5 would prevent the
+  problem at the source.
+
+## Video Presentation
+
+A 3–5 minute walkthrough of the analysis, covering the key queries, the
+main findings, and recommendations for next quarter:
+
+**[Watch the presentation](VIDEO_LINK_HERE)**
+
+## How to Run It
+
+**Requirements:** PostgreSQL 14 or later, with the `createdb` and `psql`
+command-line tools.
+
+**1. Download the repository**
+```bash
+git clone https://github.com/jkahng-code/EX603-Movie-TV-database.git
+cd EX603-Movie-TV-database
+```
+
+**2. Create the database and load the dataset**
+
+This creates the tables and inserts all the data. It is safe to re-run,
+because the script drops existing tables first.
+```bash
+createdb ex603_data
+psql -d ex603_data -f schema/movies.sql
+```
+
+**3. Run a query file**
+
+Each file in `queries/` runs as-is against the loaded dataset. The one
+exception is query 3.2B-1 in `queries/unit3/q3_2.sql`, which is meant to
+fail: it demonstrates the "column does not exist" error that the next two
+queries fix. psql reports the error and continues with the rest of the file. 
+
+For example, to run the Unit 4 spam breakdown:
+```bash
+psql -d ex603_data -f queries/unit4/q4_2.sql
+```
+
+Or open `psql -d ex603_data` and run a single query directly, such as the
+platform-wide spam rate:
+```sql
+SELECT COUNT(*) AS total_ratings,
+       SUM(CASE WHEN withdrawn_reason = 'Spam detected' THEN 1 ELSE 0 END) AS spam,
+       ROUND(100.0 * SUM(CASE WHEN withdrawn_reason = 'Spam detected' THEN 1 ELSE 0 END)
+             / COUNT(*), 1) AS spam_rate_pct
+FROM ratings;
+```
+This should return `200 | 12 | 6.0`.
+
+Any SQL client, such as DataGrip, pgAdmin, or DBeaver, also works: connect
+to the `ex603_data` database and open any `.sql` file from `queries/`.
