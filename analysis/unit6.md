@@ -98,8 +98,6 @@ monthly numbers were inconsistent.
 
 ## Reflection
 
-## Reflection
-
 A reporting question that is easy with a window function but awkward with
 GROUP BY alone is: "What are each movie's top three ratings?" This connects
 directly to the Top 3 Reviews feature I designed in Task 6.3A, where the goal
