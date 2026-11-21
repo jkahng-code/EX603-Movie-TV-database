@@ -252,7 +252,7 @@ Two smaller limitations are also worth noting:
 A 3–5 minute walkthrough of the analysis, covering the key queries, the
 main findings, and recommendations for next quarter:
 
-**[Watch the presentation](VIDEO_LINK_HERE)**
+**[Watch the presentation](https://www.loom.com/share/12fdc8465bde4e2fa96b5fa3e4fff2b9)**
 
 ## How to Run It
 
